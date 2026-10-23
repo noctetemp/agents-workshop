@@ -159,24 +159,31 @@ class Handler(BaseHTTPRequestHandler):
             rows = []
             needle = q.get("q", "").lower()
             want = q.get("status", "")
+            team = q.get("team", "")
             for t in STATE["tickets"]:
                 if needle and needle not in t["title"].lower():
                     continue
                 if want and t["status"] != want:
                     continue
+                if team and t["team"] != team:
+                    continue
                 cls = t["status"].split()[0]
                 rows.append(f"<tr><td>#{t['id']}</td><td><a href='/tickets/{t['id']}'>"
                             f"{html.escape(t['title'])}</a></td><td>{html.escape(t['requester'])}</td>"
+                            f"<td>{t['team']}</td>"
                             f"<td><span class='pill {cls}'>{t['status']}</span></td><td>{t['assignee']}</td></tr>")
-            opts = "".join(f"<option{' selected' if s == want else ''}>{s}</option>"
-                           for s in ["", "Open", "In progress", "Resolved"])
+            sopts = "".join(f"<option{' selected' if s == want else ''}>{s}</option>"
+                            for s in ["", "Open", "In progress", "Resolved"])
+            teams = ["", "IT Infra", "Hardware", "Access", "Facilities"]
+            topts = "".join(f"<option{' selected' if s == team else ''}>{s}</option>" for s in teams)
             body = f"""<h1>Tickets</h1>
 <form method="get" action="/tickets"><label for="q">Search titles</label>
 <input id="q" name="q" value="{html.escape(q.get('q', ''))}">
-<label for="sf">Status filter</label><select id="sf" name="status">{opts}</select>
+<label for="sf">Status filter</label><select id="sf" name="status">{sopts}</select>
+<label for="tf">Team filter</label><select id="tf" name="team">{topts}</select>
 <button type="submit">Filter</button></form><br>
-<table><tr><th>ID</th><th>Title</th><th>Requester</th><th>Status</th><th>Assignee</th></tr>
-{''.join(rows) or '<tr><td colspan=5>No tickets match.</td></tr>'}</table>"""
+<table><tr><th>ID</th><th>Title</th><th>Requester</th><th>Team</th><th>Status</th><th>Assignee</th></tr>
+{''.join(rows) or '<tr><td colspan=6>No tickets match.</td></tr>'}</table>"""
             return self.send(page("Tickets", body, user))
 
         if path.startswith("/tickets/"):
